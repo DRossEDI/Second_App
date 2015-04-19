@@ -4,15 +4,24 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import uk.co.derekross.second_app.retrofit.RetrieveService;
 
 
 public class MainActivity extends ActionBarActivity {
 
+    private ImageView mImageView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mImageView = (ImageView) findViewById(R.id.imageViewMain);
 
+
+        RetrieveService a = new RetrieveService(this, mImageView);
+        a.execute();
     }
 
 
@@ -37,4 +46,6 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+
 }
