@@ -60,23 +60,41 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
-        Intent intent = new Intent(this, SlideShowService.class);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        if(!mBound) {
+            Log.e("Activity", "onStart");
+            Intent intent = new Intent(this, SlideShowService.class);
+            bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        Log.e("Activity", "onStop");
         if(mBound){
             unbindService(mConnection);
             mBound = false;
         }
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.e("Activity", "onPause");
+
+            continueLoop(false);
 
 
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.e("Activity", "onResume");
+        if(mBound) {
+            continueLoop(true);
+        }
+    }
 
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
@@ -127,4 +145,23 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
+    private void continueLoop(Boolean b){
+        int what;
+
+        if(b){
+            what = SlideShowService.CONTINUE_LOOP;
+        } else{
+            what = SlideShowService.STOP_LOOP;
+        }
+
+        Message msg = Message.obtain(null, what);
+        try {
+            mServiceMessenger.send(msg);
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+
+    }
 }

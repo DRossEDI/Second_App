@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import retrofit.RestAdapter;
+import uk.co.derekross.second_app.Utils.SharedPrefUtil;
 import uk.co.derekross.second_app.retrofit.ImageData;
 import uk.co.derekross.second_app.retrofit.Model;
 import uk.co.derekross.second_app.retrofit.RetroFitHelper;
@@ -38,14 +39,18 @@ public class SlideShowService extends Service {
     public static final String PIC_IDS = "picIds";
     public static final String MESSENGER = "MESSENGER";
     public static final int BITMAP_TO_DISPLAY = 2;
+    public static final int STOP_LOOP = 501;
+    public static final int CONTINUE_LOOP = 502;
     private ArrayList<String> picIds = new ArrayList<String>();
-    final public static int RECEIVE_ACTIVITY_MESSENGER = 1;
+    final public static int RECEIVE_ACTIVITY_MESSENGER = 500;
     private Messenger ActivityMessenger;
     private Model response;
     private CountDownLatch mLatch;
     private CountDownLatch mEmptyPicLatch;
     Bitmap mCurrentImage = null;
     final ReentrantReadWriteLock mArrayRWLock = new ReentrantReadWriteLock();
+    private volatile boolean continueLoop = true;
+    private int page = 0;
 
 
     class IncomingHandler extends Handler {
@@ -58,7 +63,10 @@ public class SlideShowService extends Service {
                     ActivityMessenger = (Messenger) msg.obj;
                     Log.e("Service", "handling message from activity starting slideshow");
                     startSlideShow();
-
+                    break;
+                case STOP_LOOP : continueLoop = false;
+                    break;
+                case CONTINUE_LOOP : continueLoop = true;
                     break;
 
             }
@@ -86,7 +94,8 @@ public class SlideShowService extends Service {
                         .setEndpoint(RetroFitHelper.ImgurEndPoint)
                         .build();
 
-                response = imgurAdapter.create(RetroFitHelper.class).getSubReditData("gonewild");
+                response = imgurAdapter.create(RetroFitHelper.class).getSubReditData("gonewild",page++);
+
 
 
                 try {
@@ -119,7 +128,7 @@ public class SlideShowService extends Service {
                 Looper.prepare();
                 Log.e("Service", "startslideshow start");
 
-                while (true) {
+                while (continueLoop) {
                     int numOfPics;
                     try {
                         mArrayRWLock.readLock().lock();
@@ -190,7 +199,7 @@ public class SlideShowService extends Service {
 
         try {
             mArrayRWLock.writeLock().lock();
-            url = "http://i.imgur.com/" + picIds.remove(0) + ".jpg";
+            url = "http://i.imgur.com/" + picIds.remove(0) + "b.jpg";
             Log.e("Service", url);
         } finally {
             mArrayRWLock.writeLock().unlock();
@@ -229,6 +238,37 @@ public class SlideShowService extends Service {
                 e.printStackTrace();
             }
             mLatch.countDown();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        try{
+            mArrayRWLock.writeLock().lock();
+            for(String s: picIds){
+                SharedPrefUtil.savePicIdArray(s,this);
+            }
+        } finally {
+            mArrayRWLock.writeLock().unlock();
+        }
+
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        String[] arrayPics = SharedPrefUtil.loadPicIdArray(this);
+        try{
+            mArrayRWLock.writeLock().lock();
+            for(String s : arrayPics){
+                picIds.add(s);
+        }
+
+        }finally {
+            mArrayRWLock.writeLock().unlock();
+            SharedPrefUtil.nullOutPicIdArray(this);
         }
     }
 }

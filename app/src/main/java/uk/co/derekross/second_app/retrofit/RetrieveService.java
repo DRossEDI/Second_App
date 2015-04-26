@@ -50,7 +50,7 @@ public class RetrieveService extends AsyncTask<Void, Void,Void>{
                 .build();
 
 
-        response = imgurAdapter.create(RetroFitHelper.class).getSubReditData("gonewild");
+        response = imgurAdapter.create(RetroFitHelper.class).getSubReditData("gonewild",1);
 
 
 
